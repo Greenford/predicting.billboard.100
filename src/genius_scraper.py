@@ -39,8 +39,8 @@ class Scraper:
 if __name__ == '__main__':
     s = Scraper()
 
-    start = sys.argv[1]
-    end = sys.argv[2]
+    start = int(sys.argv[1])
+    end = int(sys.argv[2])
     irange = range(start, end)
 
     s.scrape_range_songs_to_db(irange)
