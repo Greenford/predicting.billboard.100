@@ -1,6 +1,8 @@
 from lyricsgenius import Genius
 from pymongo import MongoClient
 import sys
+import pandas as pd
+
 class Scraper:
 
     def __init__(self, genius_auth_path='data/genius.auth'):
