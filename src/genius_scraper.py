@@ -29,10 +29,10 @@ class Scraper:
             self.lyrics.insert_one({
                 '_id': index,
                 'searched_artist': artist,
-                'response_artist': song.artist,
+                'response_artist': songdata.artist,
                 'searched_title': title,
-                'response_title': song.title,
-                'lyrics': song.lyrics})
+                'response_title': songdata.title,
+                'lyrics': songdata.lyrics})
             if verbose:
                 print(f'Index {index} successful')
 
