@@ -13,6 +13,8 @@ class Scraper:
                           remove_section_headers=True)
         self.lyrics = MongoClient('localhost', 27017).genius.lyrics
         self.df = pd.read_csv('data/MILLION_SONGS.csv', index_col=0)[['title', 'artist_name']]
+        df['title'] = df['title'].apply(lambda s: s[2:-1])
+        df['artist_name'] = df['artist_name'].apply(lambda s: s[2:-1])
     
     def scrape_range_songs_to_db(self, irange):
 
