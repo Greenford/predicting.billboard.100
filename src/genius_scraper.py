@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from io import StringIO
 import sys, sqlite3, time
 import pandas as pd
-
+import traceback as tb
 
 class Capturing(list):
     def __enter__(self):
