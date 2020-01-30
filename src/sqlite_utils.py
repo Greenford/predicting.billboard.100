@@ -19,7 +19,7 @@ def execute_query(q, db_file):
 
     cur.execute(q)
 
-    rows = [row for row in fur.fetchall()]
+    rows = [row for row in cur.fetchall()]
 
     cur.close()
     conn.close()
