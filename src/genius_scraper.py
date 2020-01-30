@@ -47,9 +47,13 @@ class Scraper:
         df = self.df.copy()
         for i in range(start_idx, end_idx):
             row = df.iloc[i]
-            self.scrape_song_to_db(row['artist_name'],
-                                   row['title'],
-                                   row['track_id'])
+            try:
+                self.scrape_song_to_db(row['artist_name'],
+                                       row['title'],
+                                       row['track_id'])
+            except TypeError as e:
+                self.record_error_verbose(self, row['track_id'], 
+                        ''.join(tb.format_list(tb.extract_tb()))+f'\n {TypeError}: {e.args}')
             if verbose:
                 print(i)
 
@@ -84,6 +88,11 @@ class Scraper:
         self.errlog.insert_one({
             '_id': track_id,
             'type': errtype})
+    def record_error_verbose(self, track_id, errmsg):
+        self.errlog.insert_one({
+            '_id': track_id,
+            'type': 'verbose',
+            'message': errmsg})
 
 if __name__ == '__main__':
     s = Scraper()
