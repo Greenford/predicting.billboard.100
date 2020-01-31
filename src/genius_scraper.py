@@ -43,8 +43,7 @@ class Scraper:
             try:
                 self.scrape_song_to_db(row['artist_name'], row['title'], row['track_id'])
             except TypeError as e:
-                self.record_error_verbose(self, row['track_id'], 
-                        ''.join(tb.format_list(tb.extract_tb(sys.last_traceback)))+f'\n {TypeError}: {e.args}')
+                self.record_error(row['track_id'], 'TypeError')
             if verbose:
                 print(i)
 
