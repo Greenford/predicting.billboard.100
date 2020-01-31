@@ -40,13 +40,11 @@ class Scraper:
         df = self.df.copy()
         for i in range(start_idx, end_idx):
             row = df.iloc[i]
-            #try:
-            self.scrape_song_to_db(row['artist_name'],
-                                   row['title'],
-                                   row['track_id'])
-            #except TypeError as e:
-            #    self.record_error_verbose(self, row['track_id'], 
-            #            ''.join(tb.format_list(tb.extract_tb()))+f'\n {TypeError}: {e.args}')
+            try:
+                self.scrape_song_to_db(row['artist_name'], row['title'], row['track_id'])
+            except TypeError as e:
+                self.record_error_verbose(self, row['track_id'], 
+                        ''.join(tb.format_list(tb.extract_tb(sys.last_traceback)))+f'\n {TypeError}: {e.args}')
             if verbose:
                 print(i)
 
