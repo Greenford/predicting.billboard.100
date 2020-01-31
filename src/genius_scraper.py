@@ -30,7 +30,7 @@ class Scraper:
         
         conn = sqlite3.connect('/mnt/snap/AdditionalFiles/track_metadata.db')
         q = '''SELECT track_id, title, artist_name, year FROM songs 
-               WHERE year >= 1958ORDER BY year DESC;'''
+               WHERE year >= 1958 ORDER BY year DESC;'''
         df = pd.read_sql_query(q, conn)
         #df['title'] = df['title'].apply(lambda s: s[2:-1])
         #df['artist_name'] = df['artist_name'].apply(lambda s: s[2:-1])
