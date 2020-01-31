@@ -18,10 +18,10 @@ class Capturing(list):
 
 class Scraper:
 
-    def __init__(self, genius_auth_path='data/genius.auth'):
+    def __init__(self, genius_auth_path='data/genius.auth', minsleep = 0.75):
         with open('data/genius.auth', 'r') as file:
             client_access_token = file.read().strip()
-
+        self.minsleep = minsleep
         self.api = Genius(client_access_token, 
                           remove_section_headers=True)
         self.lyrics = MongoClient('localhost', 27017).tracks.lyrics
