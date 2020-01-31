@@ -18,7 +18,7 @@ class Capturing(list):
 
 class Scraper:
 
-    def __init__(self, genius_auth_path='data/genius.auth', minsleep = 0.75):
+    def __init__(self, genius_auth_path='data/genius.auth', minsleep = 0.5):
         with open('data/genius.auth', 'r') as file:
             client_access_token = file.read().strip()
         self.minsleep = minsleep
