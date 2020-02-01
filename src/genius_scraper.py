@@ -5,6 +5,7 @@ import sys, sqlite3, time
 import pandas as pd
 import traceback as tb
 from requests.exceptions import ReadTimeout
+from pymongo.errors import DuplicateKeyError
 
 class Capturing(list):
     def __enter__(self):
