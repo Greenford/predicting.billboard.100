@@ -36,9 +36,9 @@ class Scraper:
         #df['artist_name'] = df['artist_name'].apply(lambda s: s[2:-1])
         self.df = df
 
-    def scrape_df_segment_to_db(self, start_idx, end_idx, verbose=False):
+    def scrape_df_segment_to_db(self, scraperange, verbose=False):
         df = self.df.copy()
-        for i in range(start_idx, end_idx):
+        for i in scraperange:
             row = df.iloc[i]
             try:
                 self.scrape_song_to_db(row['artist_name'], row['title'], row['track_id'])
@@ -110,9 +110,16 @@ class Scraper:
 if __name__ == '__main__':
     s = Scraper()
 
-    start = int(sys.argv[1])
-    end = int(sys.argv[2])
+    end = s.df.shape[0]
+    mode = int(sys.argv[1])
+    if mode == 0:
+        for start in range(0,5):
+            scraperange = range(start, end, 10) 
+            s.scrape_df_segment_to_db(scraperange, verbose=True)
+    else if mode == 5:
+        for start in range(5, 10):
+            scraperange = range(start, end, 10)
+            s.scrape_df_segment_to_db(scraperange, verbose=True)
 
-    s.scrape_df_segment_to_db(start, end, verbose=True)
     
 
