@@ -44,6 +44,8 @@ class Scraper:
                 self.scrape_song_to_db(row['artist_name'], row['title'], row['track_id'])
             except TypeError as e:
                 self.record_error(row['track_id'], 'TypeError')
+            except DuplicateKeyError: 
+                print(f'Duplicate skipped on index {i}')
             if verbose:
                 print(i)
 
@@ -54,7 +56,7 @@ class Scraper:
                 songdata = self.api.search_song(title, artist)
 
         #for the few errors that have been raised
-        except ReadTimeout as e:
+        except ReadTimeout:
             self.api.sleep_time += 3
             print(f'sleep time increased to {self.api.sleep_time}')
             self.record_error(track_id, 'ReadTimeout')
