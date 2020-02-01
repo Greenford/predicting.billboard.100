@@ -116,7 +116,7 @@ if __name__ == '__main__':
         for start in range(0,5):
             scraperange = range(start, end, 10) 
             s.scrape_df_segment_to_db(scraperange, verbose=True)
-    else if mode == 5:
+    elif mode == 5:
         for start in range(5, 10):
             scraperange = range(start, end, 10)
             s.scrape_df_segment_to_db(scraperange, verbose=True)
