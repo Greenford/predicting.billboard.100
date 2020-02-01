@@ -113,11 +113,11 @@ if __name__ == '__main__':
     end = s.df.shape[0]
     mode = int(sys.argv[1])
     if mode == 0:
-        for start in range(0,5):
+        for start in range(100000,100005):
             scraperange = range(start, end, 10) 
             s.scrape_df_segment_to_db(scraperange, verbose=True)
     elif mode == 5:
-        for start in range(5, 10):
+        for start in range(100005, 100010):
             scraperange = range(start, end, 10)
             s.scrape_df_segment_to_db(scraperange, verbose=True)
 
