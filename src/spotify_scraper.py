@@ -23,6 +23,7 @@ class Spotify_Scraper:
         
         track_ids_with_lyrics = {track['_id'] for track in client.tracks.lyrics.find(
             {'_id':{'$exists':'true'}}, {'_id':'true'})}
+
         self.df = df[df['track_id'] in track_ids_with_lyrics]
 
     def get_spotify_URI(self, artist, trackname):
@@ -35,7 +36,7 @@ class Spotify_Scraper:
     def get_audio_features_by_URIs(self, URIlist):
         return self.sp.audio_features(URIlist)
 
-    def scrape_all(self):
+    def scrape_all(self, verbose=0):
         i = 0
         num_tracks self.df.shape[0]
         while i < num_tracks
@@ -51,8 +52,12 @@ class Spotify_Scraper:
                 else:
                     track_arr.append({'_id':MSDID, 'metadata': trackdata})
                 i += 1
+                if verbose == 2:
+                    print(i)
                 time.sleep(self.sleeptime)
             URIlist = list(map(lambda x: x['metadata']['uri'], tracks_arr))
+            if verbose >= 1:
+                print('    {i}')
             af_arr = self.sp.audio_features(URIlist)
             self.insert_to_mongo(tracks_arr, af_arr, err_arr)
 
@@ -65,6 +70,9 @@ class Spotify_Scraper:
         self.audio_features.insert_many(tracks_arr)
         self.audio_errlog.insert_many(err_arr)
 
+if __name__ == '__main__':
+    s = Spotify_Scraper(0.5)
+    s.scrape_all(verbose=True)
 
             
 
