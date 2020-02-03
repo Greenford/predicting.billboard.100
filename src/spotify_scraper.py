@@ -15,20 +15,36 @@ class Spotify_Scraper:
         client_credentials_manager = SpotifyClientCredentials(client_id=client_id, 
             client_secret=client_secret)
         self.sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+        print('Connected to Spotify')
+
         client = MongoClient('localhost', 27017)
         self.audio_features = client.tracks.audio_features
         self.audio_errlog = client.tracks.audio_errlog
-        
+        print('Connected to MongoDB')
 
         conn = sqlite3.connect('/mnt/snap/AdditionalFiles/track_metadata.db')
         q = '''SELECT track_id, title, artist_name, year FROM songs 
                WHERE year >= 1958 ORDER BY year DESC;'''
         self.df = pd.read_sql_query(q, conn)
-        
+        print(f'{self.df.shape[0]} rows read from sqlite db to potentially scrape')
+
         MSDIDs_with_lyrics = {track['_id'] for track in client.tracks.lyrics.find(
             {'_id':{'$exists':'true'}}, {'_id':'true'})}
+        print(f'{len(MSDIDs_with_lyrics)} of those have scraped lyrics, prioritized to scrape features'
         
-        mask = [(MSDID in MSDIDs_with_lyrics) for MSDID in self.df['track_id'].values] 
+        already_scraped_err = {track['_id'] for track in client.tracks.audio_errlog.find(
+            {'_id':{'$exists':'true'}}, {'_id':'true'})}
+
+        already_scraped = {track['_id'] for track in client.tracks.audio_features.find(
+            {'_id':{'$exists':'true'}}, {'_id':'true'})}
+
+        already_scraped = already_scraped.union(already_scraped_err)
+        print(f'{len(already_scraped)} already scraped')
+
+        scrapables = MSIDS_with_lyrics - already_scraped
+        print(f'{len(scrapables} total identified to scrape')
+        
+        mask = [(MSDID in scrapables) for MSDID in self.df['track_id'].values] 
         self.df = self.df[mask]
 
     def get_spotify_URI(self, artist, trackname):
@@ -73,13 +89,22 @@ class Spotify_Scraper:
             URI = track['metadata']['uri']
             track['audio_features'] = af_arr[URI]
         try:
-            self.audio_features.insert_many(tracks_arr, ordered=False)
+            for track in tracks_arr:
+                self.audio_features.insert_one(track)
+            #self.audio_features.insert_many(tracks_arr, ordered=False)
         except BulkWriteError as bwe:
             print(bwe.details)
+        except DuplicateKeyError:
+            print('DuplicateKeyError adding to audio_features')
+        
         try:
-            self.audio_errlog.insert_many(err_arr)
+            for e in err_arr:
+                self.audio_errlog.insert_one(e)
+            #self.audio_errlog.insert_many(err_arr)
         except BulkWriteError as bwe:
             print(bwe.details)
+        except DuplicateKeyError:
+            print('Duplicate Key Error adding to audio_errlog')
 if __name__ == '__main__':
     s = Spotify_Scraper(0.5)
     s.scrape_all(verbose=int(sys.argv[1]))
