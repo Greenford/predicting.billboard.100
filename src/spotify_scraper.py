@@ -30,7 +30,7 @@ class Spotify_Scraper:
 
         MSDIDs_with_lyrics = {track['_id'] for track in client.tracks.lyrics.find(
             {'_id':{'$exists':'true'}}, {'_id':'true'})}
-        print(f'{len(MSDIDs_with_lyrics)} of those have scraped lyrics, prioritized to scrape features'
+        print(f'{len(MSDIDs_with_lyrics)} of those have scraped lyrics, prioritized to scrape features')
         
         already_scraped_err = {track['_id'] for track in client.tracks.audio_errlog.find(
             {'_id':{'$exists':'true'}}, {'_id':'true'})}
@@ -41,8 +41,8 @@ class Spotify_Scraper:
         already_scraped = already_scraped.union(already_scraped_err)
         print(f'{len(already_scraped)} already scraped')
 
-        scrapables = MSIDS_with_lyrics - already_scraped
-        print(f'{len(scrapables} total identified to scrape')
+        scrapables = MSDIDs_with_lyrics - already_scraped
+        print(f'{len(scrapables)} total identified to scrape')
         
         mask = [(MSDID in scrapables) for MSDID in self.df['track_id'].values] 
         self.df = self.df[mask]
