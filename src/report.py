@@ -8,13 +8,6 @@ class genius_report:
         self.lyrics = client.tracks.lyrics
         self.errlog = client.tracks.errlog
 
-        #self.lyrics_count = lyrics.estimated_document_count()
-        #len(np.array([int(i['_id']) for i in lyrics.find(\
-        #    {'_id': {'$exists':'true'}}, {'_id':'true'})]))
-        #self.err_count = errlog
-        #len(np.array([int(i['_id']) for i in errlog.find(\
-        #    {'_id': {'$exists':'true'}}, {'_id':'true'})]))
-
     def num_scraped(self):
         l = self.lyrics.estimated_document_count()
         e = self.errlog.estimated_document_count()
