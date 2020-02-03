@@ -18,7 +18,7 @@ class genius_report:
         e = self.db.audio_errlog.estimated_document_count()
         print('Spotify:')
         print(f'{n} spotify track audio features successfully gathered')
-        print(f'{n+e} total tracks tried with {np.around(100*n/(l+e),2)}% success')
+        print(f'{n+e} total tracks tried with {np.around(100*n/(n+e),2)}% success')
 
 if __name__ == '__main__':
     r = genius_report()
