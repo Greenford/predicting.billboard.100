@@ -78,7 +78,9 @@ class Spotify_Scraper:
                 time.sleep(self.sleeptime)
             URIlist = list(map(lambda x: x['metadata']['uri'], tracks_arr))
             if verbose >= 1:
-                print(f'    {i}')
+                print(f'__index: {i}')
+                print(f'Scraped: {len(tracks_arr)}')
+                print(f'Errors:  {len(err_arr)}')
             af_arr = self.sp.audio_features(URIlist)
             self.insert_to_mongo(tracks_arr, af_arr, err_arr)
 
