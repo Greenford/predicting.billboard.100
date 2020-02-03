@@ -86,27 +86,41 @@ class Spotify_Scraper:
 
 
     def insert_to_mongo(self, tracks_arr, af_arr, err_arr):
-        af_arr = {features['uri']: features for features in af_arr}
+        af, af_arr = af_arr.copy(), dict() 
+        for features in af:
+            if features != None:
+                af_arr[features['uri']] = features
         for track in tracks_arr:
             URI = track['metadata']['uri']
-            track['audio_features'] = af_arr[URI]
+            track_af = af_arr.get(URI, None)
+            if track_af != None:
+                track['audio_features'] = af_arr[URI]
+            else:
+                err_arr.append({'_id':track['_id'], 'msg': 'No audio features returned'})
+                print(f'No audio features returned for track: {track["_id"]}')
         try:
             for track in tracks_arr:
-                self.audio_features.insert_one(track)
+                try:
+                    self.audio_features.insert_one(track)
+                except DuplicateKeyError:
+                    print('DuplicateKeyError: track already in audio_features')
             #self.audio_features.insert_many(tracks_arr, ordered=False)
         except BulkWriteError as bwe:
             print(bwe.details)
-        except DuplicateKeyError:
-            print('DuplicateKeyError adding to audio_features')
         
         try:
             for e in err_arr:
-                self.audio_errlog.insert_one(e)
+                try:
+                    self.audio_errlog.insert_one(e)
+                except DuplicateKeyError:
+                    print('Duplicate Key Error adding to audio_errlog')
             #self.audio_errlog.insert_many(err_arr)
         except BulkWriteError as bwe:
             print(bwe.details)
         except DuplicateKeyError:
             print('Duplicate Key Error adding to audio_errlog')
+
+
 if __name__ == '__main__':
     s = Spotify_Scraper(0.5)
     s.scrape_all(verbose=int(sys.argv[1]))
