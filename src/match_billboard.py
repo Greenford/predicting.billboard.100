@@ -17,7 +17,27 @@ def run_match():
 
     bb = get_billboard_data()
     print('billboard data read')
+    
+    bb = exact_match(bb, meta, MSDID_set)
 
+    bb = bb[~bb['msdid'].isna()]
+    bb.drop(columns='year', inplace=True)
+    bb.to_csv('data/Billboard_MSD_Matches.csv')
+
+def exact_match(bb, meta, MSDID_set):
+    for i in range(bb.shape[0]):
+        row = bb.iloc[i]
+        metarow = meta[(meta['year']==row['year']) & (meta['artist_name']==row['artist'])\
+                & (meta['title']==row['track'])]
+        if metarow.shape[0] > 0:
+            bb.iloc[i]['msdid'] = metarow.iloc[0]['track_id']
+    return bb
+
+
+
+
+
+    '''
     for year in bb['year'].unique():
         print(year)
         bb_year = bb[bb['year'] == year]
@@ -28,10 +48,7 @@ def run_match():
                 & (meta['artist_name']==bb_song['artist'])]
             if exact.shape[0] > 0:
                 bb.iloc[int(bb_song.index[0])]['msdid'] = exact.iloc[0]['track_id']
-    bb = bb[~bb['msdid'].isna()]
-    bb.drop(columns='year', inplace=True)
-    bb.to_csv('data/Billboard_MSD_Matches.csv')
-    print('Complete')
+    '''
 
 def get_billboard_data():
     bb = pd.read_csv("data/HotSongsBillBoard.csv")
