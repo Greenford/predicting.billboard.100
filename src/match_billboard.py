@@ -2,15 +2,24 @@ import pandas as pd
 import numpy as np
 import sqlite3
 from pymongo import MongoClient
+import os
 
 def run_match():
-    result = audio_feat_col.find({'_id':{'$exists':'true'}, 'audio_features':{'$exists':'true'}}, 
+    col = MongoClient('localhost', 27017).tracks.audio_features
+    result = col.find({'_id':{'$exists':'true'}, 'audio_features':{'$exists':'true'}}, 
         {'_id':'true'})
+
     MSDIDs = {r['_id'] for r in result}
+    print('Relevant MSDIDs identified')
+    
     meta = get_metadata_for_MSDIDs(MSDIDs)
+    print('Metadata DB read')
+
     bb = get_billboard_data()
+    print('billboard data read')
 
     for year in bb['year'].unique():
+        print(year)
         bb_year = bb[bb['year'] == year]
         for i in range(bb_year.shape[0]):
             bb_song = bb_year.iloc[i]
@@ -18,15 +27,15 @@ def run_match():
                 & (meta['title']==bb_song['track'])\
                 & (meta['artist_name']==bb_song['artist'])]
             if exact.shape[0] > 0:
-                bb.iloc[bb_song.index]['msdid'] = exact.iloc[0]['track_id']
+                bb.iloc[int(bb_song.index[0])]['msdid'] = exact.iloc[0]['track_id']
     bb = bb[~bb['msdid'].isna()]
     bb.drop(columns='year', inplace=True)
     bb.to_csv('data/Billboard_MSD_Matches.csv')
-                
+    print('Complete')
 
 def get_billboard_data():
-    bb = pd.read_csv('data/HotSongsBillboard.csv')
-    bb['year'] = list(map(lambda dt: dt.year, df['publish_date'].astype('datetime64')))
+    bb = pd.read_csv("data/HotSongsBillBoard.csv")
+    bb['year'] = list(map(lambda dt: dt.year, bb['publish_date'].astype('datetime64')))
     bb = bb[bb['year'] <= 2010]
     bb.insert(4, 'msdid', np.nan)
     return bb
@@ -44,3 +53,6 @@ def get_metadata_for_MSDIDs(MSDID_set):
     df = df[mask]
     return df
 
+
+if __name__ == '__main__':
+    run_match()
