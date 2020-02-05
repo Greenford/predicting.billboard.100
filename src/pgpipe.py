@@ -3,51 +3,64 @@ import sqlite3
 import pandas as pd
 import hdf5_getters as hdf5
 import psycopg2 as pg2
+from psycopg2.errors import StringDataRightTruncation
+from time import time
 
 def run_pipe():
     tracks = MongoClient('localhost', 27017).tracks
+    print('MongoDB connection successful')
 
     af, MSDID_set = read_spotify_audio_features(tracks.audio_features)
+    print('Spotify audio features ready for inserts')
     
     lyrics = read_genius_lyrics_by_MSDID(MSDID_set, tracks.lyrics)
     # TODO check/cut MSDID_set down
+    print('Lyrics ready for inserts')
 
     metadata = read_metadata_by_MSDID(MSDID_set)
     # TODO check/cut MSDID_set down
+    print('Metadata ready for inserts')
 
     _reset_pgdb()
     _create_tables()
+    print('PostgreSQL DB readied')
     
     conn = pg2.connect(dbname='billboard', host='localhost', port=5432, user='postgres')
     cur = conn.cursor()
 
     for MSDID in MSDID_set:
         msd_row = get_MSD_fields(MSDID)
-        insert_track(conn, cur, MSDID, af, lyrics, metadata, MSD_row)
-
+        insert_track(conn, cur, MSDID, af, lyrics, metadata, msd_row)
 
 def read_spotify_audio_features(audio_feat_col):
     af = dict()
     MSDID_set = set()
-    result = audio_feat_col.find({'_id':{'$exists':'true'}})
+    result = audio_feat_col.find({'_id':{'$exists':'true'}, 'audio_features':{'$exists':'true'}})
     af_keys_to_del = ['type', 'id', 'uri', 'track_href', 'analysis_url']
-    meta_keys_to_keep = ['name', 'explicit', 'release_date']
+    meta_keys_to_keep = ['name', 'explicit']
+
     for track in result:
+        current = dict()
         MSDID = track['_id']
         MSDID_set.add(MSDID)
+        current = track['audio_features']
 
         for key in af_keys_to_del:
-            del track['audio_features'][key]
-        af[MSDID] = track['audio_features']
+            del current[key]
         
         for key in meta_keys_to_keep:
-            af[MSDID][key] = track['metadata'][key]
+            current[key] = track['metadata'][key]
         
-        af[MSDID]['artist'] = track['artists']['name']
+        current['artist'] = track['metadata']['artists'][0]['name']
+        current['release_date'] = track['metadata']['album']['release_date']
+        af[MSDID] = current
+
+        #if len(af)>=1000:
+        #    break
     return af, MSDID_set
 
 def read_genius_lyrics_by_MSDID(MSDID_set, lyrics_col):
-    result = lyrics_col.find({'_id':{'$in': MSDID_set}})
+    result = lyrics_col.find({'_id':{'$in': list(MSDID_set)}})
     lyrics = dict()
     for track in result:
         MSDID = track.pop('_id')
@@ -65,31 +78,31 @@ def read_metadata_by_MSDID(MSDID_set):
            FROM songs 
            WHERE year >= 1958;'''
     df = pd.read_sql_query(q, conn)
-    mask = [(MSDID in MSDID_set) for MSDID in set(df['track_id'].values)]
+    mask = [(MSDID in MSDID_set) for MSDID in df['track_id'].values]
     df = df[mask]
     return df
 
 def get_MSD_fields(MSDID):
-    row = [0]*13
-    h5 = hdf5.open_h5_file_read(f'/mnt/snap/{MSDID[2]}/{MSDID[3]}/{MSDID[4]}/{MSDID}.h5')
+    row = dict()
+    h5 = hdf5.open_h5_file_read(f'/mnt/snap/data/{MSDID[2]}/{MSDID[3]}/{MSDID[4]}/{MSDID}.h5')
 
-    row['msd_art_lat'] =  h5.get_artist_latitude(h5)
-    row['msd_art_long'] =  h5.get_artist_longitude(h5)
-    row['msd_loudness'] =  h5.get_loudness(h5)
-    row['msd_energy'] =  h5.get_energy(h5)
-    row['msd_danceability'] =  h5.get_danceability(h5)
-    row['msd_duration'] =  h5.get_duration(h5)
-    row['msd_key'] =  h5.get_key(h5)
-    row['msd_key_conf'] = h5.get_key_confidence(h5)
-    row['msd_mode'] = h5.get_mode(h5)
-    row['msd_mode_conf'] = h5.get_mode_confidence(h5)
-    row['msd_end_fadein'] = h5.get_end_of_fade_in(h5)
-    row['msd_start_fadeout'] = h5.get_start_of_fade_out(h5)
-    row['msd_song_hot'] = h5.get_song_hotttnesss(h5)
+    row['msd_art_lat'] =  hdf5.get_artist_latitude(h5)
+    row['msd_art_long'] =  hdf5.get_artist_longitude(h5)
+    row['msd_loudness'] =  hdf5.get_loudness(h5)
+    row['msd_energy'] =  hdf5.get_energy(h5)
+    row['msd_danceability'] =  hdf5.get_danceability(h5)
+    row['msd_duration'] =  hdf5.get_duration(h5)
+    row['msd_key'] =  hdf5.get_key(h5)
+    row['msd_key_conf'] = hdf5.get_key_confidence(h5)
+    row['msd_mode'] = hdf5.get_mode(h5)
+    row['msd_mode_conf'] = hdf5.get_mode_confidence(h5)
+    row['msd_end_fadein'] = hdf5.get_end_of_fade_in(h5)
+    row['msd_start_fadeout'] = hdf5.get_start_of_fade_out(h5)
+    row['msd_song_hot'] = hdf5.get_song_hotttnesss(h5)
     h5.close()
     return row
 
-def _reset_tdcj_pgdb():
+def _reset_pgdb():
     """
     Deletes and recreates the tdcj SQL database.
     """
@@ -97,7 +110,7 @@ def _reset_tdcj_pgdb():
     conn.set_session(autocommit=True)
     cur = conn.cursor()
 
-    cur.execute('DROP DATABASE IF EXISTS tdcj')
+    cur.execute('DROP DATABASE IF EXISTS billboard')
     cur.execute('CREATE DATABASE billboard')
 
     cur.close()
@@ -111,35 +124,35 @@ def _create_tables():
     '''
     CREATE TABLE tracks(
         MSD_ID VARCHAR(18) PRIMARY KEY,
-        MSD_track_title VARCHAR(30),
-        MSD_artist_id VARCHAR(18),
+        MSD_track_title VARCHAR(64),
+        MSD_artist_name VARCHAR(32),
         MSD_artist_familiarity NUMERIC,
         MSD_artist_hotttnesss NUMERIC,
         MSD_year SMALLINT,
+
         MSD_artist_latitude NUMERIC,
         MSD_artist_longitude NUMERIC,
-
         MSD_loudness NUMERIC,
         MSD_energy NUMERIC,
         MSD_danceability NUMERIC,
         MSD_duration INTEGER,
         MSD_key SMALLINT,
         MSD_key_confidence NUMERIC,
-        MSD_mode BOOLEAN,
+        MSD_mode SMALLINT,
         MSD_mode_confidence NUMERIC,
         MSD_end_of_fade_in INTEGER,
         MSD_start_of_fade_out INTEGER,
         MSD_song_hotttnesss NUMERIC,
         
-        SPOT_track_name VARCHAR(30),
-        SPOT_artist_name VARCHAR(30),
+        SPOT_track_name VARCHAR(64),
+        SPOT_artist_name VARCHAR(32),
         SPOT_release_date SMALLINT,
-        SPOT_explicit NUMERIC,
+        SPOT_explicit BOOLEAN,
         SPOT_danceability NUMERIC,
         SPOT_energy NUMERIC,
         SPOT_key SMALLINT,
         SPOT_loudness NUMERIC,
-        SPOT_mode BOOLEAN,
+        SPOT_mode SMALLINT,
         SPOT_speechiness NUMERIC,
         SPOT_instrumentalness NUMERIC,
         SPOT_liveness NUMERIC,
@@ -148,8 +161,8 @@ def _create_tables():
         SPOT_duration INTEGER,
         SPOT_time_signature SMALLINT,
 
-        GEN_artist_name VARCHAR(30),
-        GEN_track_title VARCHAR(30),
+        GEN_artist_name VARCHAR(32),
+        GEN_track_title VARCHAR(64),
         GEN_lyrics TEXT,
 
         on_billboard BOOLEAN
@@ -163,7 +176,11 @@ def _create_tables():
 def insert_track(conn, cur, MSDID, af, lyrics, metadata, MSD_row):
     track_af = af[MSDID]
     track_lyrics = lyrics[MSDID]
-    track_metadata = metadata[metadata['track_id']==MSDID].iloc[0]
+    try:
+        track_metadata = metadata[metadata['track_id']==MSDID].iloc[0]
+    except IndexError:
+        print(f'IndexError on df: {MSDID}', len(MSDID))
+        return
     entry={
         **MSD_row,
         **track_lyrics,
@@ -173,14 +190,20 @@ def insert_track(conn, cur, MSDID, af, lyrics, metadata, MSD_row):
         'msd_art_name':track_metadata['artist_name'],
         'msd_art_fam':track_metadata['artist_familiarity'],
         'msd_art_hot':track_metadata['artist_hotttnesss'],
-        'msd_year':track_metadata['year']
+        'msd_year':int(track_metadata['year'])
     }
     entry['release_date'] = int(entry['release_date'][:4])
-
+    entry['msd_key'] = int(entry['msd_key'])
+    entry['msd_mode'] = int(entry['msd_mode'])
+    entry['explicit'] = (entry['explicit']=='false')
+    trim_dict(entry, ['msd_art_name', 'artist', 'response_artist'], 32)
+    trim_dict(entry, ['msd_title', 'name', 'response_title'], 64)
+    
+    
     command = """ INSERT INTO tracks (
         MSD_ID,
         MSD_track_title,
-        MSD_artist_id,
+        MSD_artist_name,
         MSD_artist_familiarity,
         MSD_artist_hotttnesss,
         MSD_year,
@@ -237,11 +260,11 @@ def insert_track(conn, cur, MSDID, af, lyrics, metadata, MSD_row):
         %(msd_danceability)s,
         %(msd_duration)s,
         %(msd_key)s,
-        %(msd_conf)s,
+        %(msd_key_conf)s,
         %(msd_mode)s,
         %(msd_mode_conf)s,
         %(msd_end_fadein)s,
-        %(msd_fadeout)s,
+        %(msd_start_fadeout)s,
         %(msd_song_hot)s,
         
         %(name)s,
@@ -268,9 +291,20 @@ def insert_track(conn, cur, MSDID, af, lyrics, metadata, MSD_row):
         False
     );
     """
-    cur.execute(command, entry)
+    try:
+        cur.execute(command, entry)
+    except StringDataRightTruncation as e:
+        print(entry['msd_id'])
+        print(entry)
+        raise e
+
     conn.commit()
-        
+
+def trim_dict(d, keys, length):
+    for key in keys:
+        if len(d[key]) > length:
+            d[key] = d[key][:length]
+
 if __name__ == '__main__':
     run_pipe()
 
