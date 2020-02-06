@@ -306,7 +306,8 @@ def trim_dict(d, keys, length):
             d[key] = d[key][:length]
 
 if __name__ == '__main__':
-    run_pipe()
+    if len(sys.argv) == 1:
+        run_pipe()
 
 
 
