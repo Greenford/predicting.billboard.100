@@ -20,21 +20,21 @@ class Sentimenter:
                 ncount += 1
         return (pcount-ncount)/(pcount+ncount+1), pcount, ncount
     
-    def process_mongo_docs():
-        newlabel='dict_sentiment'
-        collection = MongoClient('localhost', 27017).tracks.lyrics
-        results = collection.find({'_id':{'$exists':'true'}, 
-                                   'lyrics':{'$exists':'true'}, 
-                                   newlabel:{'$exists':'false'}},
-                                  {'_id':'true', 'lyrics':'true'})
-        s = Sentimenter()
-        count = 0
-        for track in results:
-            score = s.sentiment(track['lyrics'])
-            collection.update({'_id':track['_id']}, {'$set':{newlabel:score}})
-            count += 1
-            print(count)
+def process_mongo_docs():
+    newlabel='dict_sentiment'
+    collection = MongoClient('localhost', 27017).tracks.lyrics
+    results = collection.find({'_id':{'$exists':'true'}, 
+                               'lyrics':{'$exists':'true'}, 
+                               newlabel:{'$exists':'false'}},
+                              {'_id':'true', 'lyrics':'true'})
+    s = Sentimenter()
+    count = 0
+    for track in results:
+        score = s.sentiment(track['lyrics'])
+        collection.update({'_id':track['_id']}, {'$set':{newlabel:score}})
+        count += 1
+        print(count)
 
 if __name__ == '__main__':
-    Sentimenter.process_mongo_docs()
+    process_mongo_docs()
 
