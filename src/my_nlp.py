@@ -25,13 +25,13 @@ def process_mongo_docs():
     collection = MongoClient('localhost', 27017).tracks.lyrics
     results = collection.find({'$and':[{'_id':{'$exists':'true'}}, 
                               {'lyrics':{'$exists':'true'}}, 
-                              {newlabel:{'$exists':'false'}}]},
+                              {'dict_sentiment':{'$exists':'false'}}]},
                               {'_id':'true', 'lyrics':'true'})
     s = Sentimenter()
     count = 0
     for track in results:
         score = s.sentiment(track['lyrics'])
-        collection.update({'_id':track['_id']}, {'$set':{newlabel:score}})
+        collection.update({'_id':track['_id']}, {'$set':{'dict_sentiment':score}})
         count += 1
         print(count)
 
