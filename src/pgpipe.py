@@ -21,16 +21,26 @@ def run_pipe():
     # TODO check/cut MSDID_set down
     print('Metadata ready for inserts')
 
+    charters = pd.read_csv('data/All_Billboard_MSD_Matches.csv', index_col=0)
+    charters = set(charters['msdid'].values)
+
+
     _reset_pgdb()
     _create_tables()
     print('PostgreSQL DB readied')
     
     conn = pg2.connect(dbname='billboard', host='localhost', port=5432, user='postgres')
     cur = conn.cursor()
-
+    
+    count = 0
     for MSDID in MSDID_set:
         msd_row = get_MSD_fields(MSDID)
-        insert_track(conn, cur, MSDID, af, lyrics, metadata, msd_row)
+        insert_track(conn, cur, MSDID, af, lyrics, metadata, msd_row, charters)
+        count += 1
+        if count%1000==0:
+            conn.commit()
+            print(count)
+
 
 def read_spotify_audio_features(audio_feat_col):
     af = dict()
@@ -75,8 +85,7 @@ def read_metadata_by_MSDID(MSDID_set):
                   artist_familiarity,
                   artist_hotttnesss,
                   year 
-           FROM songs 
-           WHERE year >= 1958;'''
+           FROM songs;'''
     df = pd.read_sql_query(q, conn)
     mask = [(MSDID in MSDID_set) for MSDID in df['track_id'].values]
     df = df[mask]
@@ -89,8 +98,6 @@ def get_MSD_fields(MSDID):
     row['msd_art_lat'] =  hdf5.get_artist_latitude(h5)
     row['msd_art_long'] =  hdf5.get_artist_longitude(h5)
     row['msd_loudness'] =  hdf5.get_loudness(h5)
-    row['msd_energy'] =  hdf5.get_energy(h5)
-    row['msd_danceability'] =  hdf5.get_danceability(h5)
     row['msd_duration'] =  hdf5.get_duration(h5)
     row['msd_key'] =  hdf5.get_key(h5)
     row['msd_key_conf'] = hdf5.get_key_confidence(h5)
@@ -133,8 +140,6 @@ def _create_tables():
         MSD_artist_latitude NUMERIC,
         MSD_artist_longitude NUMERIC,
         MSD_loudness NUMERIC,
-        MSD_energy NUMERIC,
-        MSD_danceability NUMERIC,
         MSD_duration INTEGER,
         MSD_key SMALLINT,
         MSD_key_confidence NUMERIC,
@@ -165,6 +170,10 @@ def _create_tables():
         GEN_track_title VARCHAR(64),
         GEN_lyrics TEXT,
 
+        GEN_dict_sentiment NUMERIC,
+        GEN_pos_words INTEGER,
+        GEN_neg_words INTEGER,
+
         on_billboard BOOLEAN
     )
     '''
@@ -173,7 +182,7 @@ def _create_tables():
     cur.close()
     conn.close()
 
-def insert_track(conn, cur, MSDID, af, lyrics, metadata, MSD_row):
+def insert_track(conn, cur, MSDID, af, lyrics, metadata, MSD_row, charters):
     track_af = af[MSDID]
     track_lyrics = lyrics[MSDID]
     try:
@@ -196,6 +205,8 @@ def insert_track(conn, cur, MSDID, af, lyrics, metadata, MSD_row):
     entry['msd_key'] = int(entry['msd_key'])
     entry['msd_mode'] = int(entry['msd_mode'])
     entry['explicit'] = (entry['explicit']=='false')
+    entry['dict_sentiment'], entry['pos_words'], entry['neg_words'] = entry['dict_sentiment']
+    entry['charter'] = (MSDID in charters)
     trim_dict(entry, ['msd_art_name', 'artist', 'response_artist'], 32)
     trim_dict(entry, ['msd_title', 'name', 'response_title'], 64)
     
@@ -211,8 +222,6 @@ def insert_track(conn, cur, MSDID, af, lyrics, metadata, MSD_row):
         MSD_artist_latitude,
         MSD_artist_longitude,
         MSD_loudness,
-        MSD_energy,
-        MSD_danceability,
         MSD_duration,
         MSD_key,
         MSD_key_confidence,
@@ -243,6 +252,10 @@ def insert_track(conn, cur, MSDID, af, lyrics, metadata, MSD_row):
         GEN_track_title,
         GEN_lyrics,
 
+        GEN_dict_sentiment,
+        GEN_pos_words,
+        GEN_neg_words,
+
         on_billboard
     )
     VALUES (
@@ -256,8 +269,6 @@ def insert_track(conn, cur, MSDID, af, lyrics, metadata, MSD_row):
         %(msd_art_lat)s,
         %(msd_art_long)s,
         %(msd_loudness)s,
-        %(msd_energy)s,
-        %(msd_danceability)s,
         %(msd_duration)s,
         %(msd_key)s,
         %(msd_key_conf)s,
@@ -288,7 +299,11 @@ def insert_track(conn, cur, MSDID, af, lyrics, metadata, MSD_row):
         %(response_title)s,
         %(lyrics)s,
 
-        False
+        %(dict_sentiment)s,
+        %(pos_words)s,
+        %(neg_words)s,
+
+        %(charter)s
     );
     """
     try:
@@ -298,7 +313,7 @@ def insert_track(conn, cur, MSDID, af, lyrics, metadata, MSD_row):
         print(entry)
         raise e
 
-    conn.commit()
+    #conn.commit()
 
 def trim_dict(d, keys, length):
     for key in keys:
