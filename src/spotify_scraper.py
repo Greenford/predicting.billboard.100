@@ -2,6 +2,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from pymongo import MongoClient
 from pymongo.errors import BulkWriteError
+from pymongo.errors import DuplicateKeyError
 import pandas as pd
 import sqlite3, time, sys
 
@@ -123,6 +124,10 @@ class Spotify_Scraper:
 
 if __name__ == '__main__':
     s = Spotify_Scraper(0.5)
+    df_to_read = pd.read_csv('data/All_Billboard_MSD_Matches.csv', index_col=0)
+
+    s.df = df_to_read.rename(columns={'artist':'artist_name', 'track':'title', 'msdid':'track_id'})
+
     s.scrape_all(verbose=int(sys.argv[1]))
 
             
