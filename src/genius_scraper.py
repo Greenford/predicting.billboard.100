@@ -129,8 +129,7 @@ if __name__ == '__main__':
     mask = df_to_read['msdid'].apply(lambda x: x not in read_msdids)
     df_to_read = df_to_read[mask]
 
-    df_to_read.rename(columns={'artist':'artist_name', 'track':'title', 'msdid':'track_id'})
-    s.df = df_to_read
+    s.df = df_to_read.rename(columns={'artist':'artist_name', 'track':'title', 'msdid':'track_id'})
     scraperange = range(s.df.shape[0])
     s.scrape_df_segment_to_db(scraperange, verbose=True)
 
