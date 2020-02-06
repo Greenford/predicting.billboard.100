@@ -27,14 +27,11 @@ class Scraper:
                           remove_section_headers=True)
         self.lyrics = MongoClient('localhost', 27017).tracks.lyrics
         self.errlog = MongoClient('localhost', 27017).tracks.errlog
-        #df = pd.read_csv('data/MILLION_SONGS.csv', index_col=0)[['title', 'artist_name']]
         
         conn = sqlite3.connect('/mnt/snap/AdditionalFiles/track_metadata.db')
         q = '''SELECT track_id, title, artist_name, year FROM songs 
                WHERE year >= 1958 ORDER BY year DESC;'''
         df = pd.read_sql_query(q, conn)
-        #df['title'] = df['title'].apply(lambda s: s[2:-1])
-        #df['artist_name'] = df['artist_name'].apply(lambda s: s[2:-1])
         self.df = df
 
     def scrape_df_segment_to_db(self, scraperange, verbose=False):
@@ -112,7 +109,7 @@ class Scraper:
 
 if __name__ == '__main__':
     s = Scraper()
-
+    '''
     end = s.df.shape[0]
     mode = int(sys.argv[1])
     if mode == 0:
@@ -123,6 +120,17 @@ if __name__ == '__main__':
         for start in range(100005, 100010):
             scraperange = range(start, end, 10)
             s.scrape_df_segment_to_db(scraperange, verbose=True)
+    '''
+    df_read = pd.read_csv('data/Billboard_MSD_Matches.csv', index_col=0)
+    df_read = df_read[df_read['msdid']!='']
+    df_to_read = pd.read_csv('data/All_Billboard_MSD_Matches.csv', index_col=0)
 
-    
+    read_msdids = set(df_read['msdid'].values)
+    mask = df_to_read['msdid'].apply(lambda x: x not in read_msdids)
+    df_to_read = df_to_read[mask]
+
+    df_to_read.rename(columns={'artist':'artist_name', 'track':'title', 'msdid':'track_id'})
+    s.df = df_to_read
+    scraperange = range(s.df.shape[0])
+    s.scrape_df_segment_to_db(scraperange, verbose=True)
 
