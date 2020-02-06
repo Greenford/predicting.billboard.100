@@ -23,9 +23,9 @@ class Sentimenter:
 def process_mongo_docs():
     newlabel='dict_sentiment'
     collection = MongoClient('localhost', 27017).tracks.lyrics
-    results = collection.find({'_id':{'$exists':'true'}, 
-                               'lyrics':{'$exists':'true'}, 
-                               newlabel:{'$exists':'false'}},
+    results = collection.find({'$and':[{'_id':{'$exists':'true'}}, 
+                              {'lyrics':{'$exists':'true'}}, 
+                              {newlabel:{'$exists':'false'}}]},
                               {'_id':'true', 'lyrics':'true'})
     s = Sentimenter()
     count = 0
