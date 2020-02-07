@@ -11,14 +11,13 @@ def run_pipe():
     print('MongoDB connection successful')
 
     af, MSDID_set = read_spotify_audio_features(tracks.audio_features)
-    print('Spotify audio features ready for inserts')
+    print(f'{len(MSDID_set)} Spotify audio features ready for insertion')
     
     lyrics = read_genius_lyrics_by_MSDID(MSDID_set, tracks.lyrics)
-    # TODO check/cut MSDID_set down
-    print('Lyrics ready for inserts')
+    MSDID_set = set(lyrics.keys())
+    print(f'{len(MSDID_set)} Lyrics ready for insertion')
 
     metadata = read_metadata_by_MSDID(MSDID_set)
-    # TODO check/cut MSDID_set down
     print('Metadata ready for inserts')
 
     charters = pd.read_csv('data/All_Billboard_MSD_Matches.csv', index_col=0)
@@ -45,7 +44,7 @@ def run_pipe():
 def read_spotify_audio_features(audio_feat_col):
     af = dict()
     MSDID_set = set()
-    result = audio_feat_col.find({'_id':{'$exists':'true'}, 'audio_features':{'$exists':'true'}})
+    result = audio_feat_col.find({'$and':[{'_id':{'$exists':'true'}}, {'audio_features':{'$exists':'true'}}]})
     af_keys_to_del = ['type', 'id', 'uri', 'track_href', 'analysis_url']
     meta_keys_to_keep = ['name', 'explicit']
 
@@ -64,13 +63,10 @@ def read_spotify_audio_features(audio_feat_col):
         current['artist'] = track['metadata']['artists'][0]['name']
         current['release_date'] = track['metadata']['album']['release_date']
         af[MSDID] = current
-
-        #if len(af)>=1000:
-        #    break
     return af, MSDID_set
 
 def read_genius_lyrics_by_MSDID(MSDID_set, lyrics_col):
-    result = lyrics_col.find({'_id':{'$in': list(MSDID_set)}})
+    result = lyrics_col.find({'$and':[{'_id':{'$in': list(MSDID_set)}}, {'lyrics':{'$exists':'true'}}]})
     lyrics = dict()
     for track in result:
         MSDID = track.pop('_id')
@@ -116,7 +112,7 @@ def _reset_pgdb():
     conn = pg2.connect(host='localhost', port=5432, user='postgres')
     conn.set_session(autocommit=True)
     cur = conn.cursor()
-
+    
     cur.execute('DROP DATABASE IF EXISTS billboard')
     cur.execute('CREATE DATABASE billboard')
 
@@ -321,8 +317,7 @@ def trim_dict(d, keys, length):
             d[key] = d[key][:length]
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        run_pipe()
+    run_pipe()
 
 
 

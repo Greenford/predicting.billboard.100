@@ -124,9 +124,9 @@ class Spotify_Scraper:
 
 if __name__ == '__main__':
     s = Spotify_Scraper(0.5)
-    df_to_read = pd.read_csv('data/All_Billboard_MSD_Matches.csv', index_col=0)
-
-    s.df = df_to_read.rename(columns={'artist':'artist_name', 'track':'title', 'msdid':'track_id'})
+    
+    #df_to_read = pd.read_csv('data/All_Billboard_MSD_Matches.csv', index_col=0)
+    #s.df = df_to_read.rename(columns={'artist':'artist_name', 'track':'title', 'msdid':'track_id'})
 
     s.scrape_all(verbose=int(sys.argv[1]))
 

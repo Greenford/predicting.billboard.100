@@ -23,8 +23,7 @@ class Sentimenter:
 def process_mongo_docs():
     collection = MongoClient('localhost', 27017).tracks.lyrics
     results = collection.find({'$and':[{'_id':{'$exists':'true'}}, 
-                              {'lyrics':{'$exists':'true'}}]},
-                              {'_id':'true', 'lyrics':'true'})
+                              {'lyrics':{'$exists':'true'}}]})
     s = Sentimenter()
     count = 0
     for track in results:
@@ -33,6 +32,8 @@ def process_mongo_docs():
             collection.update({'_id':track['_id']}, {'$set':{'dict_sentiment':score}})
             count += 1
             print(count)
+        else:
+            count += 1
 
 if __name__ == '__main__':
     process_mongo_docs()
