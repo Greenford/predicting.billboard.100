@@ -7,7 +7,7 @@ After reading David Laing's [Analysis of Kendrick Lamar's Discography](https://d
 What is emotional self-consistency? Take a look at the image below from Laing's article. 
 
 (Image)[]
-Notice that most of the tracks on the album *good kid, m.A.A.d city* are more self-consistent than those of *To Pimp A ButterFly*. Another definition would be the absolute difference between musical sentiment and lyrical sentiment. 
+Notice that most of the tracks on the album *good kid, m.A.A.d city* are more self-consistent than those of *To Pimp A ButterFly*. Another definition would be the absolute similarity between musical sentiment and lyrical sentiment. 
 
 ### Data Collection
 [Million Song Dataset](http://millionsongdataset.com/) 
